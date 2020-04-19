@@ -1,7 +1,4 @@
-import com.rabbitmq.client.BuiltinExchangeType;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.*;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -15,6 +12,8 @@ import java.util.Arrays;
 
 public class Administrator {
     public static String BROADCAST_EXCHANGE_TOPIC = "broadcastExchangeTopic";
+    public static String COPY_EXCHANGE_TOPIC = "copyExchangeTopic";
+    public static String COPY_ROUTING_KEY = "copy";
     public static String ADMINISTRATOR = "[A]: Administrator";
     private static String messageHeader = ADMINISTRATOR + " sends message to ";
     private static ConnectionFactory factory;
@@ -31,8 +30,6 @@ public class Administrator {
         connection = factory.newConnection();
         channel = connection.createChannel();
 
-        //TODO: test
-        // declare broadcast queues
         Arrays.stream(Mode.values()).forEach(mode ->
         {
             try {
@@ -42,11 +39,21 @@ public class Administrator {
             }
         });
 
-        // TODO:            channel.basicConsume(agencyName, false, consumer);
+        channel.exchangeDeclare(COPY_EXCHANGE_TOPIC, BuiltinExchangeType.DIRECT);
+        String queueName = channel.queueDeclare().getQueue();
+        channel.queueBind(queueName, COPY_EXCHANGE_TOPIC, COPY_ROUTING_KEY);
+
+        Consumer consumer = new DefaultConsumer(channel) {
+            @Override
+            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) {
+                String message = new String(body, StandardCharsets.UTF_8);
+                System.out.println("RECEIVED COPY OF: " + message);
+            }
+        };
+        channel.basicConsume(queueName, true, consumer);
 
         while (true) {
             sendMessage();
-//            todo: try to receive a copy of each message
         }
     }
 
@@ -80,15 +87,6 @@ enum Mode {
         this.type = type;
         this.routingKey = routingKey;
     }
-
-//    public Mode of(String queueName) {
-//        for (Mode mode : Mode.values()) {
-//            if (mode.queueName.equals(queueName)) {
-//                return mode;
-//            }
-//        }
-//        throw new IllegalArgumentException();
-//    }
 
     public static String getRoutingKey(int type) {
         for (Mode mode : Mode.values()) {

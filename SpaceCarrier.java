@@ -34,7 +34,7 @@ public class SpaceCarrier {
         String queueName = channel.queueDeclare().getQueue();
         channel.queueBind(queueName, Administrator.BROADCAST_EXCHANGE_TOPIC, Mode.ALL_CARRIERS.routingKey);
         channel.exchangeDeclare(SpaceAgency.DIRECT_EXCHANGE_RESPONSE_QUEUE, BuiltinExchangeType.DIRECT);
-
+        channel.exchangeDeclare(Administrator.COPY_EXCHANGE_TOPIC, BuiltinExchangeType.DIRECT);
 
 // todo: fix non-receiving messages when routing key = *
 
@@ -47,6 +47,7 @@ public class SpaceCarrier {
                 if (!responseRoutingKey.equals(Administrator.ADMINISTRATOR.split(" ")[0])) {
                     String confirmationMessage = confirmationHeader + message;
                     channel.basicPublish(SpaceAgency.DIRECT_EXCHANGE_RESPONSE_QUEUE, responseRoutingKey, null, confirmationMessage.getBytes(StandardCharsets.UTF_8));
+                    channel.basicPublish(Administrator.COPY_EXCHANGE_TOPIC, Administrator.COPY_ROUTING_KEY, null, confirmationMessage.getBytes(StandardCharsets.UTF_8));
                     System.out.println("SENT: " + confirmationMessage);
                 }
                 channel.basicAck(envelope.getDeliveryTag(), true);

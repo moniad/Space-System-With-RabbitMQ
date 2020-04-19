@@ -31,6 +31,7 @@ public class SpaceAgency {
 
         channel.exchangeDeclare(Administrator.BROADCAST_EXCHANGE_TOPIC, BuiltinExchangeType.TOPIC);
         channel.exchangeDeclare(DIRECT_EXCHANGE_RESPONSE_QUEUE, BuiltinExchangeType.DIRECT);
+        channel.exchangeDeclare(Administrator.COPY_EXCHANGE_TOPIC, BuiltinExchangeType.DIRECT);
         String queueName = channel.queueDeclare().getQueue();
         channel.queueBind(queueName, Administrator.BROADCAST_EXCHANGE_TOPIC, Mode.ALL_AGENCIES.routingKey);
         channel.queueBind(queueName, DIRECT_EXCHANGE_RESPONSE_QUEUE, agencyName);
@@ -66,6 +67,7 @@ public class SpaceAgency {
             ServiceType serviceType = getServiceType();
             String requestMessage = getJobMessage(serviceType.name);
             channel.basicPublish("", serviceType.name, null, requestMessage.getBytes());
+            channel.basicPublish(Administrator.COPY_EXCHANGE_TOPIC, Administrator.COPY_ROUTING_KEY, null, requestMessage.getBytes(StandardCharsets.UTF_8));
             System.out.println("SENT: " + requestMessage);
             jobNumber++;
         }
