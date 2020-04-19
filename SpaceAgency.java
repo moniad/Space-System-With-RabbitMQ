@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 public class SpaceAgency {
     private static String agencyName;
-    public static String DIRECT_EXCHANGE_RESPONSE_QUEUE = "directExchangeResponseQueue";
+    public static String RESPONSE_EXCHANGE_DIRECT = "responseExchangeDirect";
     private static int jobNumber = 0;
     private static List<String> queueNames = new ArrayList<>();
     private static Channel channel;
@@ -30,14 +30,15 @@ public class SpaceAgency {
         channel = connection.createChannel();
 
         channel.exchangeDeclare(Administrator.BROADCAST_EXCHANGE_TOPIC, BuiltinExchangeType.TOPIC);
-        channel.exchangeDeclare(DIRECT_EXCHANGE_RESPONSE_QUEUE, BuiltinExchangeType.DIRECT);
+        channel.exchangeDeclare(RESPONSE_EXCHANGE_DIRECT, BuiltinExchangeType.DIRECT);
         channel.exchangeDeclare(Administrator.COPY_EXCHANGE_TOPIC, BuiltinExchangeType.DIRECT);
+
         String queueName = channel.queueDeclare().getQueue();
         channel.queueBind(queueName, Administrator.BROADCAST_EXCHANGE_TOPIC, Mode.ALL_AGENCIES.routingKey);
-        channel.queueBind(queueName, DIRECT_EXCHANGE_RESPONSE_QUEUE, agencyName);
+        channel.queueBind(queueName, RESPONSE_EXCHANGE_DIRECT, agencyName);
 
-//        todo: probably unnecessary
-//        channel.queueBind(queueName, Administrator.BROADCAST_EXCHANGE_TOPIC, Mode.ALL_AGENCIES_AND_CARRIERS.routingKey);
+//        it should have been done with simply setting routing key to * or #, or something similar, but any of these worked
+        channel.queueBind(queueName, Administrator.BROADCAST_EXCHANGE_TOPIC, Mode.ALL_AGENCIES_AND_CARRIERS.routingKey);
 
 
 

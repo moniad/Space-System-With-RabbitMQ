@@ -31,12 +31,12 @@ public class SpaceCarrier {
         channel = connection.createChannel();
 
         channel.exchangeDeclare(Administrator.BROADCAST_EXCHANGE_TOPIC, BuiltinExchangeType.TOPIC);
-        String queueName = channel.queueDeclare().getQueue();
-        channel.queueBind(queueName, Administrator.BROADCAST_EXCHANGE_TOPIC, Mode.ALL_CARRIERS.routingKey);
-        channel.exchangeDeclare(SpaceAgency.DIRECT_EXCHANGE_RESPONSE_QUEUE, BuiltinExchangeType.DIRECT);
+        channel.exchangeDeclare(SpaceAgency.RESPONSE_EXCHANGE_DIRECT, BuiltinExchangeType.DIRECT);
         channel.exchangeDeclare(Administrator.COPY_EXCHANGE_TOPIC, BuiltinExchangeType.DIRECT);
 
-// todo: fix non-receiving messages when routing key = *
+        String queueName = channel.queueDeclare().getQueue();
+        channel.queueBind(queueName, Administrator.BROADCAST_EXCHANGE_TOPIC, Mode.ALL_CARRIERS.routingKey);
+        channel.queueBind(queueName, Administrator.BROADCAST_EXCHANGE_TOPIC, Mode.ALL_AGENCIES_AND_CARRIERS.routingKey); // not pretty
 
         Consumer consumer = new DefaultConsumer(channel) {
             @Override
@@ -46,7 +46,7 @@ public class SpaceCarrier {
                 String responseRoutingKey = message.split(" ")[0]; // first string in request message is agency's or admin's name
                 if (!responseRoutingKey.equals(Administrator.ADMINISTRATOR.split(" ")[0])) {
                     String confirmationMessage = confirmationHeader + message;
-                    channel.basicPublish(SpaceAgency.DIRECT_EXCHANGE_RESPONSE_QUEUE, responseRoutingKey, null, confirmationMessage.getBytes(StandardCharsets.UTF_8));
+                    channel.basicPublish(SpaceAgency.RESPONSE_EXCHANGE_DIRECT, responseRoutingKey, null, confirmationMessage.getBytes(StandardCharsets.UTF_8));
                     channel.basicPublish(Administrator.COPY_EXCHANGE_TOPIC, Administrator.COPY_ROUTING_KEY, null, confirmationMessage.getBytes(StandardCharsets.UTF_8));
                     System.out.println("SENT: " + confirmationMessage);
                 }

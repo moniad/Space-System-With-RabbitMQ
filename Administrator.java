@@ -78,7 +78,7 @@ public class Administrator {
 }
 
 enum Mode {
-    ALL_AGENCIES(1, "agencies"), ALL_CARRIERS(2, "carriers"), ALL_AGENCIES_AND_CARRIERS(3, "*");
+    ALL_AGENCIES(1, "agencies"), ALL_CARRIERS(2, "carriers"), ALL_AGENCIES_AND_CARRIERS(3, "#");
 
     int type;
     String routingKey;
