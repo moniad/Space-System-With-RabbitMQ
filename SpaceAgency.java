@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 public class SpaceAgency {
     private static String agencyName;
+    public static String DIRECT_EXCHANGE_RESPONSE_QUEUE = "directExchangeResponseQueue";
     private static int jobNumber = 0;
     private static List<String> queueNames = new ArrayList<>();
     private static Channel channel;
@@ -28,6 +29,17 @@ public class SpaceAgency {
         connection = factory.newConnection();
         channel = connection.createChannel();
 
+        channel.exchangeDeclare(Administrator.BROADCAST_EXCHANGE_TOPIC, BuiltinExchangeType.TOPIC);
+        channel.exchangeDeclare(DIRECT_EXCHANGE_RESPONSE_QUEUE, BuiltinExchangeType.DIRECT);
+        String queueName = channel.queueDeclare().getQueue();
+        channel.queueBind(queueName, Administrator.BROADCAST_EXCHANGE_TOPIC, Mode.ALL_AGENCIES.routingKey);
+        channel.queueBind(queueName, DIRECT_EXCHANGE_RESPONSE_QUEUE, agencyName);
+
+//        todo: probably unnecessary
+//        channel.queueBind(queueName, Administrator.BROADCAST_EXCHANGE_TOPIC, Mode.ALL_AGENCIES_AND_CARRIERS.routingKey);
+
+
+
         // declare queues
         queueNames = Arrays.stream(ServiceType.values()).map(q -> q.name).collect(Collectors.toList());
         queueNames.forEach(qn -> {
@@ -39,46 +51,34 @@ public class SpaceAgency {
         });
         channel.basicQos(1); // accept only one unack-ed message at a time
 
-        // declare queue for responses
-        channel.queueDeclare(agencyName, false, false, false, null);
-
         Consumer consumer = new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
                 String message = new String(body, StandardCharsets.UTF_8);
-                System.out.println("Received: " + message);
+                System.out.println("RECEIVED: " + message);
             }
         };
 
-        channel.basicConsume(agencyName, false, consumer);
+        channel.basicConsume(queueName, true, consumer);
 
         while (true) {
-            // start listening
             System.out.println("Type X to send Y: \n- 1 - people \n- 2 - load \n- 3 - satellite...");
             ServiceType serviceType = getServiceType();
             String requestMessage = getJobMessage(serviceType.name);
             channel.basicPublish("", serviceType.name, null, requestMessage.getBytes());
-            System.out.println("Sent message: " + requestMessage);
-
+            System.out.println("SENT: " + requestMessage);
             jobNumber++;
         }
-
-        //        channel.basicConsume(QUEUE_NAME, false, consumer);
-
-
-        // close
-//        channel.close();
-//        connection.close();
     }
 
     private static void fetchAgencyName() throws IOException {
         System.out.println("Type SPACE AGENCY's name: ");
         agencyName = MessageReadUtil.readMessage();
-        System.out.println("SPACE AGENCY " + agencyName);
+        System.out.println("SPACE AGENCY: " + agencyName);
     }
 
     private static String getJobMessage(String serviceName) {
-        return agencyName + ", jobNo: " + jobNumber + ", service type's name: " + serviceName;
+        return agencyName + " jobNo: " + jobNumber + " service type's name: " + serviceName;
     }
 
     private static ServiceType getServiceType() throws IOException {

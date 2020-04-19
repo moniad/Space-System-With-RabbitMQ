@@ -16,36 +16,46 @@ import java.util.stream.Stream;
 
 public class SpaceCarrier {
     private static List<ServiceType> serviceTypes;
-    private static final int timeToSleep = 10;
-    private static final String confirmationHeader = "Finished job: ";
+    private static final String confirmationHeader = "[C]: Finished job: ";
+    private static ConnectionFactory factory;
+    private static Connection connection;
+    private static Channel channel;
 
     public static void main(String[] argv) throws Exception {
-        // info
-        System.out.println("SPACE CARRIER");
         assignServiceTypes();
 
         // connection & channel
-        ConnectionFactory factory = new ConnectionFactory();
+        factory = new ConnectionFactory();
         factory.setHost("localhost");
-        Connection connection = factory.newConnection();
-        Channel channel = connection.createChannel();
+        connection = factory.newConnection();
+        channel = connection.createChannel();
+
+        channel.exchangeDeclare(Administrator.BROADCAST_EXCHANGE_TOPIC, BuiltinExchangeType.TOPIC);
+        String queueName = channel.queueDeclare().getQueue();
+        channel.queueBind(queueName, Administrator.BROADCAST_EXCHANGE_TOPIC, Mode.ALL_CARRIERS.routingKey);
+        channel.exchangeDeclare(SpaceAgency.DIRECT_EXCHANGE_RESPONSE_QUEUE, BuiltinExchangeType.DIRECT);
+
+
+// todo: fix non-receiving messages when routing key = *
 
         Consumer consumer = new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
                 String message = new String(body, StandardCharsets.UTF_8);
-                System.out.println("Received: " + message);
-                String confirmationMessage = confirmationHeader + message;
-                String responseQueueName = message.split(" ")[0]; // first string in request message is agency's name
-                channel.basicPublish("", responseQueueName, null, confirmationMessage.getBytes());
-                channel.basicAck(envelope.getDeliveryTag(), false); // send ack
+                System.out.println("RECEIVED: " + message);
+                String responseRoutingKey = message.split(" ")[0]; // first string in request message is agency's or admin's name
+                if (!responseRoutingKey.equals(Administrator.ADMINISTRATOR.split(" ")[0])) {
+                    String confirmationMessage = confirmationHeader + message;
+                    channel.basicPublish(SpaceAgency.DIRECT_EXCHANGE_RESPONSE_QUEUE, responseRoutingKey, null, confirmationMessage.getBytes(StandardCharsets.UTF_8));
+                    System.out.println("SENT: " + confirmationMessage);
+                }
+                channel.basicAck(envelope.getDeliveryTag(), true);
             }
         };
 
         // declare queues
         serviceTypes.stream().map(q -> q.name).forEach(qn -> {
             try {
-                System.out.println(qn);
                 channel.queueDeclare(qn, false, false, false, null);
                 channel.basicConsume(qn, false, consumer);
             } catch (IOException e) {
@@ -54,6 +64,7 @@ public class SpaceCarrier {
         });
 
         System.out.println("Waiting for jobs...");
+        channel.basicConsume(queueName, true, consumer);
     }
 
     private static void assignServiceTypes() throws IOException {
