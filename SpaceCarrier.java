@@ -1,6 +1,7 @@
 import com.rabbitmq.client.*;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -15,6 +16,8 @@ import java.util.stream.Stream;
 
 public class SpaceCarrier {
     private static List<ServiceType> serviceTypes;
+    private static final int timeToSleep = 10;
+    private static final String confirmationHeader = "Finished job: ";
 
     public static void main(String[] argv) throws Exception {
         // info
@@ -30,8 +33,11 @@ public class SpaceCarrier {
         Consumer consumer = new DefaultConsumer(channel) {
             @Override
             public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
-                String message = new String(body, "UTF-8");
+                String message = new String(body, StandardCharsets.UTF_8);
                 System.out.println("Received: " + message);
+                String confirmationMessage = confirmationHeader + message;
+                String responseQueueName = message.split(" ")[0]; // first string in request message is agency's name
+                channel.basicPublish("", responseQueueName, null, confirmationMessage.getBytes());
                 channel.basicAck(envelope.getDeliveryTag(), false); // send ack
             }
         };
