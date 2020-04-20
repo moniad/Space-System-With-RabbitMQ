@@ -2,7 +2,6 @@ import com.rabbitmq.client.*;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 /*** Administrator dostaje kopię wszystkich wiadomości przesyłanych w systemie oraz ma możliwość wysłania wiadomości w trzech trybach:
  - do wszystkich Agencji
@@ -30,14 +29,11 @@ public class Administrator {
         connection = factory.newConnection();
         channel = connection.createChannel();
 
-        Arrays.stream(Mode.values()).forEach(mode ->
-        {
-            try {
-                channel.exchangeDeclare(BROADCAST_EXCHANGE_TOPIC, BuiltinExchangeType.TOPIC);
-            } catch (IOException e) {
-                System.err.println(e.getMessage());
-            }
-        });
+        try {
+            channel.exchangeDeclare(BROADCAST_EXCHANGE_TOPIC, BuiltinExchangeType.TOPIC);
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
 
         channel.exchangeDeclare(COPY_EXCHANGE_TOPIC, BuiltinExchangeType.DIRECT);
         String queueName = channel.queueDeclare().getQueue();
@@ -78,7 +74,7 @@ public class Administrator {
 }
 
 enum Mode {
-    ALL_AGENCIES(1, "agencies"), ALL_CARRIERS(2, "carriers"), ALL_AGENCIES_AND_CARRIERS(3, "#");
+    ALL_AGENCIES(1, "agencies"), ALL_CARRIERS(2, "carriers"), ALL_AGENCIES_AND_CARRIERS(3, "everyone");
 
     int type;
     String routingKey;

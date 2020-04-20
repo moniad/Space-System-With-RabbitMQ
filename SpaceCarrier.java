@@ -50,7 +50,6 @@ public class SpaceCarrier {
                     channel.basicPublish(Administrator.COPY_EXCHANGE_TOPIC, Administrator.COPY_ROUTING_KEY, null, confirmationMessage.getBytes(StandardCharsets.UTF_8));
                     System.out.println("SENT: " + confirmationMessage);
                 }
-                channel.basicAck(envelope.getDeliveryTag(), true);
             }
         };
 
@@ -58,7 +57,7 @@ public class SpaceCarrier {
         serviceTypes.stream().map(q -> q.name).forEach(qn -> {
             try {
                 channel.queueDeclare(qn, false, false, false, null);
-                channel.basicConsume(qn, false, consumer);
+                channel.basicConsume(qn, true, consumer);
             } catch (IOException e) {
                 System.err.println(e.getMessage());
             }
