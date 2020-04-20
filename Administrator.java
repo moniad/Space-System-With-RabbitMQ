@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 
 public class Administrator {
     public static String BROADCAST_EXCHANGE_TOPIC = "broadcastExchangeTopic";
-    public static String COPY_EXCHANGE_TOPIC = "copyExchangeTopic";
+    public static String COPY_EXCHANGE_DIRECT = "copyExchangeDirect";
     public static String COPY_ROUTING_KEY = "copy";
     public static String ADMINISTRATOR = "[A]: Administrator";
     private static String messageHeader = ADMINISTRATOR + " sends message to ";
@@ -35,9 +35,9 @@ public class Administrator {
             System.err.println(e.getMessage());
         }
 
-        channel.exchangeDeclare(COPY_EXCHANGE_TOPIC, BuiltinExchangeType.DIRECT);
+        channel.exchangeDeclare(COPY_EXCHANGE_DIRECT, BuiltinExchangeType.TOPIC);
         String queueName = channel.queueDeclare().getQueue();
-        channel.queueBind(queueName, COPY_EXCHANGE_TOPIC, COPY_ROUTING_KEY);
+        channel.queueBind(queueName, COPY_EXCHANGE_DIRECT, COPY_ROUTING_KEY);
 
         Consumer consumer = new DefaultConsumer(channel) {
             @Override

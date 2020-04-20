@@ -32,7 +32,7 @@ public class SpaceCarrier {
 
         channel.exchangeDeclare(Administrator.BROADCAST_EXCHANGE_TOPIC, BuiltinExchangeType.TOPIC);
         channel.exchangeDeclare(SpaceAgency.RESPONSE_EXCHANGE_DIRECT, BuiltinExchangeType.DIRECT);
-        channel.exchangeDeclare(Administrator.COPY_EXCHANGE_TOPIC, BuiltinExchangeType.DIRECT);
+        channel.exchangeDeclare(Administrator.COPY_EXCHANGE_DIRECT, BuiltinExchangeType.DIRECT);
 
         String queueName = channel.queueDeclare().getQueue();
         channel.queueBind(queueName, Administrator.BROADCAST_EXCHANGE_TOPIC, Mode.ALL_CARRIERS.routingKey);
@@ -47,7 +47,7 @@ public class SpaceCarrier {
                 if (!responseRoutingKey.equals(Administrator.ADMINISTRATOR.split(" ")[0])) {
                     String confirmationMessage = confirmationHeader + message;
                     channel.basicPublish(SpaceAgency.RESPONSE_EXCHANGE_DIRECT, responseRoutingKey, null, confirmationMessage.getBytes(StandardCharsets.UTF_8));
-                    channel.basicPublish(Administrator.COPY_EXCHANGE_TOPIC, Administrator.COPY_ROUTING_KEY, null, confirmationMessage.getBytes(StandardCharsets.UTF_8));
+                    channel.basicPublish(Administrator.COPY_EXCHANGE_DIRECT, Administrator.COPY_ROUTING_KEY, null, confirmationMessage.getBytes(StandardCharsets.UTF_8));
                     System.out.println("SENT: " + confirmationMessage);
                 }
             }
