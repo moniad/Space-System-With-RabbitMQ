@@ -2,10 +2,6 @@ import com.rabbitmq.client.*;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /***
  Agencje kosmiczne zlecają wykonanie trzech typów usług: przewóz osób, przewóz ładunku, umieszczenie satelity na orbicie.
@@ -15,7 +11,6 @@ public class SpaceAgency {
     private static String agencyName;
     public static String RESPONSE_EXCHANGE_DIRECT = "responseExchangeDirect";
     private static int jobNumber = 0;
-    private static List<String> queueNames = new ArrayList<>();
     private static Channel channel;
     private static Connection connection;
     private static ConnectionFactory factory;
@@ -40,17 +35,6 @@ public class SpaceAgency {
 //        it should have been done with simply setting routing key to * or #, or something similar, but any of these worked
         channel.queueBind(queueName, Administrator.BROADCAST_EXCHANGE_TOPIC, Mode.ALL_AGENCIES_AND_CARRIERS.routingKey);
 
-
-
-        // declare queues
-        queueNames = Arrays.stream(ServiceType.values()).map(q -> q.name).collect(Collectors.toList());
-        queueNames.forEach(qn -> {
-            try {
-                channel.queueDeclare(qn, false, false, false, null);
-            } catch (IOException e) {
-                System.err.println("IOException");
-            }
-        });
         channel.basicQos(1); // accept only one unack-ed message at a time
 
         Consumer consumer = new DefaultConsumer(channel) {
